@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, use } from "react";
 import { Camera, AlertTriangle, Shield, Phone, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/dist/client/components/navigation";
 
 export default function CreateIncident() {
+  const router = useRouter();
   // --- FORM STATES ---
   const [title, setTitle] = useState("");
   const [severity, setSeverity] = useState("HIGH"); // Matches your DB enum default
@@ -111,6 +113,7 @@ export default function CreateIncident() {
 
       // 4. Success!
       alert("Incident reported successfully!");
+      router.back();
       // Reset form
       setTitle("");
       setDescription("");
