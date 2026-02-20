@@ -75,11 +75,12 @@ export const getAllIncidents = async (req: Request, res: Response) => {
 
 // Get incident by ID
 export const getIncidentById = async (req: Request, res: Response) => {
+  console.log("Received request to get incident by ID:", req.params.id);
   try {
     const { id } = req.params;
 
     // ✅ Check if valid Mongo ID
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(id as string)) {
       return res.status(400).json({
         success: false,
         message: "Invalid Incident ID",
