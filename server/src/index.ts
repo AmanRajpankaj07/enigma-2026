@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./db/db";
 import incidentRoutes from "./routes/incidentRoutes";
+import resourceRoutes from "./routes/resourceRoutes";
 
 dotenv.config();
 
@@ -14,6 +15,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api/incidents", incidentRoutes);
+app.use("/api/resources", resourceRoutes);
 
 app.get("/test", (req, res) => {
   res.json({ message: "Test working" });
