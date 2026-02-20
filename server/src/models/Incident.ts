@@ -1,3 +1,4 @@
+//src/models/Incident.ts
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IIncident extends Document {
@@ -5,6 +6,7 @@ export interface IIncident extends Document {
   description: string;
   location: string;
   severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  image: string;
   status: "ACTIVE" | "RESOLVED";
   createdAt: Date;
   updatedAt: Date;
@@ -30,6 +32,11 @@ const IncidentSchema: Schema = new Schema(
     severity: {
       type: String,
       enum: ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
+      required: true,
+    },
+
+    image: {
+      type: String,
       required: true,
     },
 
