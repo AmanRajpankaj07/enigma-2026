@@ -34,8 +34,8 @@ export const createIncident = async (
 
     const prompt = `
       You are a disaster response moderator. 
-      A user is reporting a disaster with the title: "${title}" and description: "${description}".
-      Does the provided image realistically show a disaster that matches this text?
+      A user is reporting with the title: "${title}" and description: "${description}".
+      Does the provided image realistically show a lighter burning that matches this text?
       Reply strictly with "VALID" if it matches, or "INVALID" if it is unrelated, fake, or spam.
     `;
 
