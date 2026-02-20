@@ -1,5 +1,6 @@
 // @/services/incidentService.ts
 import axios from "axios";
+import { get } from "http";
 
 // 1. Define exactly what the data looks like
 export interface Incident {
@@ -11,6 +12,7 @@ export interface Incident {
   status: string;
   createdAt: string;
   updatedAt: string;
+  image: string;
   __v?: number;
 }
 
@@ -31,7 +33,7 @@ const apiClient = axios.create({
 
 export const incidentService = {
   // 3. Strongly type the return value
-  getIncidents: async (): Promise<IncidentResponse> => {
+  getAllIncidents: async (): Promise<IncidentResponse> => {
     try {
       const response = await apiClient.get("/incidents/all");
       // Since we return response.data here, our component doesn't need to unwrap it again
@@ -41,4 +43,16 @@ export const incidentService = {
       throw error;
     }
   },
+
+  getIncidentById: async (id: string): Promise<{success:boolean, data: Incident | null}> => {
+    try {
+      const response = await apiClient.get(`/incidents/${id}`);
+      console.log("API response for getIncidentById:", response);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching incident with id ${id}:`, error);
+      throw error;
+    }
+  },
+
 };
