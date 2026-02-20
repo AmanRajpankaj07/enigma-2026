@@ -5,10 +5,16 @@ import { Camera, AlertTriangle, Shield, Phone, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 export default function CreateIncident() {
-  // FIX: Added <string | null> type
-  const [image, setImage] = useState<string | null>(null);
+  // --- FORM STATES ---
+  const [title, setTitle] = useState("");
+  const [severity, setSeverity] = useState("HIGH"); // Matches your DB enum default
+  const [location, setLocation] = useState("");
+  const [description, setDescription] = useState("");
+  const [phone, setPhone] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // FIX: Added <HTMLVideoElement | null> type
+  // --- CAMERA STATES ---
+  const [image, setImage] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [showCamera, setShowCamera] = useState(false);
 
@@ -17,18 +23,17 @@ export default function CreateIncident() {
     setShowCamera(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      // FIX: Null check before assignment
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
     } catch (err) {
       console.error("Camera access denied", err);
       setShowCamera(false);
+      alert("Please allow camera access to report an incident.");
     }
   };
 
   const captureImage = () => {
-    // FIX: Check if videoRef.current is not null
     if (videoRef.current) {
       const canvas = document.createElement("canvas");
       canvas.width = videoRef.current.videoWidth;
@@ -40,12 +45,84 @@ export default function CreateIncident() {
         setImage(canvas.toDataURL("image/png"));
         setShowCamera(false);
 
-        // FIX: Typesafe stream stopping
         const stream = videoRef.current.srcObject as MediaStream;
         if (stream) {
           stream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
         }
       }
+    }
+  };
+
+  // Helper: Converts the camera's Base64 string into a File for Multer
+  const dataURLtoFile = (dataurl: string, filename: string) => {
+    let arr = dataurl.split(","),
+      mime = arr[0].match(/:(.*?);/)![1],
+      bstr = atob(arr[1]),
+      n = bstr.length,
+      u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+  };
+
+  // --- SUBMIT LOGIC ---
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!image) {
+      alert("Please capture live evidence (image) before submitting.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // 1. Pack the data exactly how Postman does it (FormData)
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("description", description);
+      formData.append("location", location);
+      formData.append("severity", severity);
+      
+      // Convert our image state into a file and append it for Multer
+      const imageFile = dataURLtoFile(image, "incident-evidence.png");
+      formData.append("image", imageFile);
+
+      // 2. Send to your working backend (Update this URL if your backend runs on a different port)
+      const response = await fetch("http://localhost:5001/api/incidents/create", {
+        method: "POST",
+        body: formData, // Notice we don't set Content-Type, the browser does it automatically for FormData
+      });
+
+      const data = await response.json();
+
+      // 3. Handle Errors (Including our new AI logic)
+      if (!response.ok) {
+        if (data.errorType === "IMAGE_MISMATCH") {
+          alert("AI SYSTEM WARNING: " + data.message);
+          setImage(null); // Clear the bad image
+          startCamera();  // Immediately re-open the camera
+          setIsSubmitting(false);
+          return;
+        }
+        throw new Error(data.message || "Something went wrong saving the incident.");
+      }
+
+      // 4. Success!
+      alert("Incident reported successfully!");
+      // Reset form
+      setTitle("");
+      setDescription("");
+      setLocation("");
+      setImage(null);
+      setPhone("");
+
+    } catch (error: any) {
+      console.error(error);
+      alert(error.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -71,7 +148,7 @@ export default function CreateIncident() {
             </div>
           </div>
 
-          <form className="space-y-6 bg-slate-900/50 p-8 rounded-2xl border border-slate-800">
+          <form onSubmit={handleSubmit} className="space-y-6 bg-slate-900/50 p-8 rounded-2xl border border-slate-800">
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-cyan-500">
@@ -79,6 +156,9 @@ export default function CreateIncident() {
                 </label>
                 <input
                   type="text"
+                  required
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Flash Flood - Sector 7"
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 focus:outline-none focus:border-cyan-500 transition-all"
                 />
@@ -87,12 +167,32 @@ export default function CreateIncident() {
                 <label className="text-xs font-bold uppercase tracking-wider text-cyan-500">
                   Severity Level
                 </label>
-                <select className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 focus:outline-none focus:border-cyan-500">
-                  <option value="low">Low - Minor Assistance</option>
-                  <option value="moderate">Moderate - Response Required</option>
-                  <option value="high">High - Immediate Critical Rescue</option>
+                <select 
+                  value={severity}
+                  onChange={(e) => setSeverity(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 focus:outline-none focus:border-cyan-500"
+                >
+                  {/* Matches your Mongoose Enums perfectly */}
+                  <option value="LOW">Low - Minor Assistance</option>
+                  <option value="MEDIUM">Medium - Response Required</option>
+                  <option value="HIGH">High - Immediate Rescue</option>
+                  <option value="CRITICAL">Critical - Life Threatening</option>
                 </select>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-cyan-500">
+                Exact Location
+              </label>
+              <input
+                type="text"
+                required
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="e.g. Main Street Bridge, Downtown"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 focus:outline-none focus:border-cyan-500 transition-all"
+              />
             </div>
 
             <div className="space-y-2">
@@ -100,7 +200,10 @@ export default function CreateIncident() {
                 Situation Description
               </label>
               <textarea
-                rows={4} // FIX: Changed "4" (string) to 4 (number)
+                rows={4} 
+                required
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
                 placeholder="Describe victims, location details, and immediate needs..."
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 focus:outline-none focus:border-cyan-500"
               />
@@ -119,6 +222,8 @@ export default function CreateIncident() {
                     />
                     <input
                       type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
                       placeholder="+91 00000 00000"
                       className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 pl-10 focus:outline-none focus:border-cyan-500"
                     />
@@ -158,12 +263,12 @@ export default function CreateIncident() {
                 ) : (
                   <div className="relative group">
                     <img
-                      src={image || ""} // FIX: Added fallback to empty string
+                      src={image || ""} 
                       className="w-full aspect-video object-cover rounded-xl border border-cyan-500/50"
                       alt="Evidence"
                     />
                     <button
-                      type="button" // Always specify button type in forms
+                      type="button" 
                       onClick={() => setImage(null)}
                       className="absolute top-2 right-2 bg-slate-950/80 p-2 rounded-md text-xs hover:text-red-500"
                     >
@@ -176,15 +281,17 @@ export default function CreateIncident() {
 
             <button
               type="submit"
-              className="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-4 rounded-xl transition-all uppercase tracking-widest shadow-[0_0_20px_rgba(34,211,238,0.2)]"
+              disabled={isSubmitting}
+              className="w-full bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-bold py-4 rounded-xl transition-all uppercase tracking-widest shadow-[0_0_20px_rgba(34,211,238,0.2)]"
             >
-              Transmit Incident Data
+              {isSubmitting ? "Transmitting..." : "Transmit Incident Data"}
             </button>
           </form>
         </div>
 
         {/* RIGHT SIDE: Sidebar Widgets */}
         <div className="hidden lg:block space-y-6">
+          {/* ... (Your existing sidebar code remains untouched here) ... */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6">
             <div className="flex items-center gap-3 text-cyan-400 pb-4 border-b border-slate-800">
               <Shield size={20} />
