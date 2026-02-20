@@ -1,159 +1,116 @@
-// app/incidents/page.tsx (or wherever your page is)
 "use client"
 import React, { useState, useEffect, useCallback } from 'react';
 import { incidentService, Incident } from '@/services/incidentService';
 
 const IncidentsPage = () => {
     const [incidents, setIncidents] = useState<Incident[]>([]);
-    const [isLoading, setIsLoading] = useState(true); // Start true to show loaders immediately
+    const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     const fetchAllIncidents = useCallback(async () => {
         setIsLoading(true);
         setError(null);
-        
         try {
             const response = await incidentService.getIncidents();
-            
-            // Because our service already returns response.data, 'response' IS our payload
             if (response?.success && Array.isArray(response.data)) {
                 setIncidents(response.data);
             } else {
-                throw new Error("Unexpected data format received");
+                throw new Error("Unexpected data format");
             }
         } catch (error) {
-            console.error("Error fetching incidents:", error);
-            setError("Failed to load incidents. Please try again later.");
+            setError("Connection to Command Center failed.");
         } finally {
             setIsLoading(false);
         }
     }, []);
 
-    // Fetch data automatically when the page loads
-    useEffect(() => {
-        fetchAllIncidents();
-    }, [fetchAllIncidents]);
+    useEffect(() => { fetchAllIncidents(); }, [fetchAllIncidents]);
 
-    // Helpers
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleString('en-US', {
-            month: 'short', day: 'numeric', year: 'numeric', 
-            hour: '2-digit', minute: '2-digit'
-        });
-    };
-
-    const getSeverityColor = (severity: string) => {
+    const getSeverityStyles = (severity: string) => {
         switch(severity?.toUpperCase()) {
-            case 'HIGH': return 'bg-red-100 text-red-800 border-red-200';
-            case 'MEDIUM': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-            case 'LOW': return 'bg-green-100 text-green-800 border-green-200';
-            default: return 'bg-gray-100 text-gray-800 border-gray-200';
+            case 'HIGH': return 'border-red-500/50 bg-red-500/10 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.1)]';
+            case 'MEDIUM': return 'border-amber-500/50 bg-amber-500/10 text-amber-400';
+            default: return 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400';
         }
     };
 
-  return (
-    <div className="max-w-6xl mx-auto p-6 font-sans">
-      
-      {/* Header & Controls */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 border-b border-gray-200 pb-5 gap-4">
-        <div>
-            <h1 className="text-3xl font-bold text-gray-900">Incidents Dashboard</h1>
-            <p className="text-gray-500 mt-1">Monitor and track reported issues.</p>
-        </div>
-        <button 
-            onClick={fetchAllIncidents}
-            disabled={isLoading}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-6 rounded-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-sm active:scale-95 flex items-center gap-2"
-        >
-            {isLoading && (
-                <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-            )}
-            {isLoading ? 'Refreshing...' : 'Refresh Data'}
-        </button>
-      </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6 border border-red-200 shadow-sm flex items-center gap-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <span><span className="font-semibold">Error: </span>{error}</span>
-        </div>
-      )}
-
-      {/* Skeleton Loading State */}
-      {isLoading && incidents.length === 0 && (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3, 4, 5, 6].map((n) => (
-                <div key={n} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm h-48 flex flex-col animate-pulse">
-                    <div className="flex justify-between mb-4">
-                        <div className="h-5 bg-gray-200 rounded w-1/2"></div>
-                        <div className="h-5 bg-gray-200 rounded-full w-16"></div>
+    return (
+        <div className="min-h-screen bg-[#0a0a0c] text-slate-200 p-4 md:p-8 font-sans">
+            
+            {/* TACTICAL HEADER */}
+            <header className="max-w-7xl mx-auto mb-10 flex flex-col md:flex-row justify-between items-center gap-6 border-b border-slate-800 pb-8">
+                <div className="space-y-1 text-center md:text-left">
+                    <div className="flex items-center justify-center md:justify-start gap-3">
+                        <div className="h-3 w-3 bg-red-500 rounded-full animate-pulse" />
+                        <h1 className="text-4xl font-black tracking-tighter uppercase italic text-white">
+                            Incident <span className="text-blue-500">Command</span>
+                        </h1>
                     </div>
-                    <div className="h-4 bg-gray-200 rounded w-24 mb-4"></div>
-                    <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-auto"></div>
-                    <div className="pt-4 border-t border-gray-100 mt-4 flex gap-4">
-                        <div className="h-3 bg-gray-200 rounded w-1/3"></div>
-                        <div className="h-3 bg-gray-200 rounded w-1/3"></div>
-                    </div>
+                    <p className="text-slate-500 font-mono text-sm tracking-widest">REAL-TIME DATA ACQUISITION // SECTOR-01</p>
                 </div>
-            ))}
-        </div>
-      )}
 
-      {/* Empty State */}
-      {!isLoading && incidents.length === 0 && !error && (
-        <div className="flex flex-col items-center justify-center py-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300">
-            <div className="text-gray-400 mb-2">
-                <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
-            </div>
-            <p className="text-xl font-medium text-gray-600">No incidents found</p>
-        </div>
-      )}
-
-      {/* Grid of Incident Cards */}
-      {!isLoading && incidents.length > 0 && (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {incidents.map((incident) => (
-                <div key={incident._id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full group">
-                    <div className="flex justify-between items-start mb-3 gap-2">
-                        <h3 className="font-bold text-lg text-gray-900 leading-tight group-hover:text-blue-700 transition-colors">
-                            {incident.title}
-                        </h3>
-                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
-                            incident.status === 'ACTIVE' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-100 text-gray-600 border-gray-200'
-                        }`}>
-                            {incident.status}
+                <div className="flex items-center gap-4">
+                    <div className="hidden md:block text-right mr-4 border-r border-slate-800 pr-6">
+                        <p className="text-xs text-slate-500 uppercase font-bold tracking-widest">Active Threats</p>
+                        <p className="text-2xl font-mono font-bold text-white">{incidents.length}</p>
+                    </div>
+                    <button 
+                        onClick={fetchAllIncidents}
+                        className="group relative px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-sm transition-all overflow-hidden"
+                    >
+                        <span className="relative z-10 flex items-center gap-2 uppercase tracking-tighter">
+                            {isLoading ? 'Syncing...' : 'Refresh System'}
                         </span>
-                    </div>
-
-                    <div className="mb-3">
-                        <span className={`text-xs font-bold px-2.5 py-0.5 rounded border ${getSeverityColor(incident.severity)}`}>
-                            {incident.severity} SEVERITY
-                        </span>
-                    </div>
-
-                    <p className="text-gray-600 text-sm mb-4 flex-grow">
-                        {incident.description}
-                    </p>
-
-                    <div className="mt-auto pt-4 border-t border-gray-100 text-xs text-gray-500 space-y-2">
-                        <div className="flex items-center gap-1.5">
-                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                            <span className="font-medium text-gray-700">{incident.location}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            <span>{formatDate(incident.createdAt)}</span>
-                        </div>
-                    </div>
+                        <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform" />
+                    </button>
                 </div>
-            ))}
+            </header>
+
+            {/* INCIDENT GRID */}
+            <main className="max-w-7xl mx-auto">
+                {isLoading && incidents.length === 0 ? (
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 opacity-50">
+                       {[1,2,3].map(i => <div key={i} className="h-64 bg-slate-900 animate-pulse rounded-lg border border-slate-800" />)}
+                   </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {incidents.map((incident) => (
+                            <div 
+                                key={incident._id} 
+                                className={`relative group bg-[#111114] border-l-4 p-6 transition-all hover:-translate-y-1 ${getSeverityStyles(incident.severity)}`}
+                            >
+                                <div className="flex justify-between items-start mb-4">
+                                    <span className="font-mono text-[10px] tracking-widest text-slate-500 uppercase">ID: {incident._id.slice(-6)}</span>
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/5 border border-white/10 uppercase tracking-widest">
+                                        {incident.status}
+                                    </span>
+                                </div>
+
+                                <h3 className="text-xl font-bold text-white mb-2 leading-tight group-hover:text-blue-400 transition-colors">
+                                    {incident.title}
+                                </h3>
+                                
+                                <p className="text-slate-400 text-sm line-clamp-3 mb-6 font-medium leading-relaxed">
+                                    {incident.description}
+                                </p>
+
+                                <div className="mt-auto space-y-3">
+                                    <div className="flex items-center gap-3 text-xs text-slate-300 bg-black/30 p-2 rounded">
+                                        <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
+                                        <span className="font-bold uppercase tracking-tight">{incident.location}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-[10px] font-mono text-slate-500 uppercase pt-2">
+                                        <span>Reported: {new Date(incident.createdAt).toLocaleDateString()}</span>
+                                        <span className="text-blue-500 font-bold tracking-tighter cursor-pointer hover:underline">Full Dossier →</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </main>
         </div>
-      )}
+    );
+};
 
-    </div>
-  )
-}
-
-export default IncidentsPage
+export default IncidentsPage;
