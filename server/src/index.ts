@@ -6,6 +6,7 @@ import connectDB from "./db/db";
 dotenv.config();
 
 const app = express();
+// 
 
 // Connect Database
 connectDB();
