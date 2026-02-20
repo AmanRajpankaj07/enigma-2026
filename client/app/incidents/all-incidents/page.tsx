@@ -1,6 +1,7 @@
 "use client"
 import React, { useState, useEffect, useCallback } from 'react';
 import { incidentService, Incident } from '@/services/incidentService';
+import Link from 'next/link';
 
 const IncidentsPage = () => {
     const [incidents, setIncidents] = useState<Incident[]>([]);
@@ -11,7 +12,7 @@ const IncidentsPage = () => {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await incidentService.getIncidents();
+            const response = await incidentService.getAllIncidents();
             if (response?.success && Array.isArray(response.data)) {
                 setIncidents(response.data);
             } else {
@@ -75,9 +76,9 @@ const IncidentsPage = () => {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {incidents.map((incident) => (
-                            <div 
-                                key={incident._id} 
-                                className={`relative group bg-[#111114] border-l-4 p-6 transition-all hover:-translate-y-1 ${getSeverityStyles(incident.severity)}`}
+                            <Link href={`/incidents/all-incidents/${incident._id}`}
+                                key={incident._id}
+                                className={`block relative group bg-[#111114] border-l-4 p-6 transition-all hover:-translate-y-1 ${getSeverityStyles(incident.severity)} cursor-pointer`}
                             >
                                 <div className="flex justify-between items-start mb-4">
                                     <span className="font-mono text-[10px] tracking-widest text-slate-500 uppercase">ID: {incident._id.slice(-6)}</span>
@@ -104,7 +105,7 @@ const IncidentsPage = () => {
                                         <span className="text-blue-500 font-bold tracking-tighter cursor-pointer hover:underline">Full Dossier →</span>
                                     </div>
                                 </div>
-                            </div>
+                            </Link>
                         ))}
                     </div>
                 )}
