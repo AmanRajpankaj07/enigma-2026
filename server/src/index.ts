@@ -15,11 +15,11 @@ app.use(express.json());
 
 app.use("/api/incidents", incidentRoutes);
 
-app.get("/", (req, res) => {
-  res.send("Backend Running");
+app.get("/test", (req, res) => {
+  res.json({ message: "Test working" });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = 5001;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
