@@ -21,6 +21,17 @@ export interface IncidentResponse {
   data: Incident[];
 }
 
+export interface resources {
+  _id: string;
+  name: string;
+  type: "FIRE_TRUCK" | "AMBULANCE" | "POLICE" | "BOAT" | "NDRF";
+  status: "AVAILABLE" | "ASSIGNED" | "IN_TRANSIT" | "ARRIVED";
+  location: string;
+  currentIncident:string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // 2. In Next.js, client-accessible env vars MUST start with NEXT_PUBLIC_
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api";
 
@@ -51,6 +62,26 @@ export const incidentService = {
       return response.data;
     } catch (error) {
       console.error(`Error fetching incident with id ${id}:`, error);
+      throw error;
+    }
+  },
+
+  getAllResources: async (): Promise<{success:boolean, data: resources[], error?: string}> => {
+    try {
+      const response = await apiClient.get("/resources/all");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching resources:", error);
+      throw error;
+    }
+  },
+
+  assignResourceToIncident: async (resourceId: string, incidentId: string): Promise<{success:boolean, data?: any, error?: string}> => {
+    try {
+      const response = await apiClient.post("/resources/assign", { resourceId, incidentId });
+      return response.data;
+    } catch (error) {
+      console.error(`Error assigning resource ${resourceId} to incident ${incidentId}:`, error);
       throw error;
     }
   },
